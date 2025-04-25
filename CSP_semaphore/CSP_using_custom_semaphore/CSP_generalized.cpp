@@ -1,120 +1,120 @@
-#include <stdio.h>
+#include <iostream>
+#include <array>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-
+#include <atomic>
+#include <mutex>
 #include "BinarySemaphore.h"
 
-#define N 3
+using namespace std;
 
-int cnt = 0;
+#define N 10
 
-int r[N]; // Resource counters
+int t = 0;
 
-const char* resources[N] = {"TOBACCO", "PAPER", "MATCHES"}; // Resource name
+mutex t_mutex;
 
-BinarySemaphore resource_sem[N]; // Semaphores for resources
+array<BinarySemaphore, N> ingredients;
+array<BinarySemaphore, (1 << N)> targets;
+
 BinarySemaphore next_round;
 
 void* agent(void* arg) {
     printf("Agent: Starting...\n\n");
 
-    clock_t start_time = clock(); // Start the clock
-
     while (1) {
-        binary_semaphore_wait(&next_round); // Wait for the next round to start
+        binary_semaphore_wait(&next_round);
 
-        int items[N - 1];
+        int notUsed = rand() % N;
 
-        int notUsed = rand() % N; // Randomly select one item to not use
+        printf("Agent: Producing items: [ ");
         for (int i = 0; i < N; i++)
             if (i != notUsed)
-                items[i < notUsed ? i : i - 1] = i;
-
-        printf("Agent: Producing items: ");
-        for (int i = 0; i < N - 1; i++)
-            printf("%s ", resources[items[i]]); // Print the produced items
-        printf("\n");
-
-        for (int i = 0; i < N - 1; i++)
-            binary_semaphore_signal(&resource_sem[items[i]]); // Signal the two items
+                cout << i << " ";
+                binary_semaphore_signal(&ingredients[i]);
+        
+        cout << "]\n";
     }
 }
 
 void* f(void* arg) {
-    int type = *(int*)arg;
-    while (1) {
-        binary_semaphore_wait(&resource_sem[type]); // Wait for tobacco
+    int id = *(int*)arg;
 
-        for (int i = 0; i < N; i++)
-            if (i != type)
-                r[i]++; // Increment the resource counter for the other items
+    while (1) {
+        binary_semaphore_wait(&ingredients[id]);
+
+        t_mutex.lock();
+        t = t + (1 << id);
+        binary_semaphore_signal(&targets[t]);
+        t_mutex.unlock();
     }
 }
 
 void* smoker(void* arg) {
-    int id = *(int*)arg; // Get the smoker ID
-
-    printf("Smoker %d: Starting...\n", id);
+    int id = *(int*)arg;
 
     while (1) {
-        while (r[id] != N-1)
-            ; // Wait until the smoker has 2 items
+        binary_semaphore_wait(&targets[(1 << N) - 1 - (1 << id)]);
 
         printf("Smoker %d: Smoking...\n", id);
-        sleep(1); // Simulate smoking time
+        cout << "Smoker " << id << " is smoking..." << endl;
+
+        sleep(1);
+
         printf("Smoker %d: Finished smoking\n\n", id);
 
-        for (int i = 0; i < N; i++)
-            r[i] = 0; // Reset the resource counters
-        cnt++; // Increment the round counter
-        binary_semaphore_signal(&next_round); // Signal the agent to produce more items
+        t_mutex.lock();
+        t = 0;
+        t_mutex.unlock();
+
+        binary_semaphore_signal(&next_round);
     }
 }
 
 int main() {
-    for (int i = 0; i < N; i++)
-        r[i] = 0; // Initialize resource counters
     
     for (int i = 0; i < N; i++)
-        binary_semaphore_init(&resource_sem[i], 0); // Initialize semaphores for resources
-    binary_semaphore_init(&next_round, 1); // Initialize semaphore for next round
+        binary_semaphore_init(&ingredients[i], 0);
+
+    binary_semaphore_init(&next_round, 1);
 
     pthread_t agent_thread, f_threads[N], smoker_threads[N];
+
+    int smoker_ids[N];
     
-    int smoker_ids[N]; // Array to hold smoker IDs
     for (int i = 0; i < N; i++)
-        smoker_ids[i] = i; // Initialize smoker IDs
+        smoker_ids[i] = i;
 
     for (int i = 0; i < N; i++)
-        pthread_create(&f_threads[i], NULL, f, &smoker_ids[i]); // Create smoker threads
+        pthread_create(&f_threads[i], NULL, f, &smoker_ids[i]);
 
     sleep(1);
     printf("fthreads created\n\n");
 
     for (int i = 0; i < N; i++)
-        pthread_create(&smoker_threads[i], NULL, smoker, &smoker_ids[i]); // Create smoker threads
+        pthread_create(&smoker_threads[i], NULL, smoker, &smoker_ids[i]);
+    
 
     sleep(1);
-
     printf("smoker threads created\n\n");
 
-    pthread_create(&agent_thread, NULL, agent, NULL); // Create agent thread
+    pthread_create(&agent_thread, NULL, agent, NULL);
 
     sleep(1);
 
     for (int i = 0; i < N; i++)
-        pthread_join(f_threads[i], NULL); // Wait for f threads to finish
+        pthread_join(f_threads[i], NULL);
+    
     printf("f threads joined\n");
 
     for (int i = 0; i < N; i++)
-        pthread_join(smoker_threads[i], NULL); // Wait for smoker threads to finish
+        pthread_join(smoker_threads[i], NULL);
+    
     printf("smoker threads joined\n");
 
-    pthread_join(agent_thread, NULL); // Wait for agent thread to finish
+    pthread_join(agent_thread, NULL);
     printf("agent thread joined\n");
 
-    printf("%d\n", cnt); // Print the number of rounds completed
-
-    return 0; // Wait for threads to finish (not reachable in this case)
+    return 0;
 }
