@@ -12,98 +12,106 @@ using namespace std;
 class CigaretteSmokingProblem {
 
 private:
+
     mutex mtx;
     condition_variable next_round;
     array<condition_variable, N> smokers;
-    int current_smoker = -1; // Shared state to track the current smoker
+    int current_smoker = -1; 
 
 public:
+
     void dropIngredients(array<int, N-1> items) {
         unique_lock<mutex> lock(mtx);
 
-        next_round.wait(lock, [this] { return current_smoker == -1; }); // Wait for the next round
+        next_round.wait(lock, [this] { return current_smoker == -1; });
 
         cout << "Agent has dropped ingredients : [ ";
-
         for (int i = 0; i < N-1; ++i) {
             cout << items[i] << " ";
         }
-
         cout << "]" << endl;
 
         int missing = 0;
+        for (int i = 0; i < N; ++i) missing ^= i;
+        for (auto i : items) missing ^= i;
 
-        for (int i = 0; i < N; ++i) missing ^= i; // XOR of all items
+        current_smoker = missing; 
+        smokers[missing].notify_one();
 
-        for (auto i : items) {
-            missing ^= i; // XOR to find the missing item
-        }
-
-        current_smoker = missing; // Set the smoker who can proceed
-        smokers[missing].notify_one(); // Notify the corresponding smoker
     }
 
-    void smoker(int id) {
+    void pickupIngredients(int id) {
         unique_lock<mutex> lock(mtx);
 
-        while (true) {
-            smokers[id].wait(lock, [this, id] { 
-                return current_smoker == id; // Wait until it's this smoker's turn
-            });
+        smokers[id].wait(lock, [this, id] { return current_smoker == id; });
 
-            cout << "Smoker having item " << id << " got rest of the ingredients and is smoking now..." << endl;
+        cout << "Smoker " << id << " picked up ingredients..." << endl;
 
-            this_thread::sleep_for(chrono::seconds(1)); // Simulate smoking time
-
-            cout << "Smoking finished !!" << endl;
-            cout << endl;
-
-            current_smoker = -1; // Reset the state for the next round
-            next_round.notify_one(); // Notify the agent for the next round
-        }
     }
+
+    void notify_for_next_round() {
+        unique_lock<mutex> lock(mtx);
+
+        current_smoker = -1; 
+        next_round.notify_all(); 
+    }
+
 };
 
 CigaretteSmokingProblem csp;
 
-void agent() {
+void smoker(int id) {
     while (true) {
-        int i = rand() % N; // Randomly select one ingredient to exclude
 
-        array<int, N-1> items = {0}; // Properly initialize the array
+        csp.pickupIngredients(id); 
 
-        int index = 0;
-        for (int j = 0; j < N; ++j) {
-            if (j != i) {
-                items[index++] = j; // Fill the array with the ingredients excluding the selected one
-            }
-        }
+        cout << "Smoker " << id << " is smoking..." << endl;
 
-        // random_device rd;
-        // mt19937 g(rd());
-        // shuffle(items.begin(), items.end(), g);        
+        this_thread::sleep_for(chrono::seconds(1)); // Simulate smoking time
 
-        csp.dropIngredients(items); // Ready to drop the ingredients
+        cout << "Smoker " << id << " finished smoking." << endl << endl;
+
+        csp.notify_for_next_round(); 
+
     }
 }
 
-int main () {
+void agent() {
 
-    srand(time(0)); // Seed for random number generation
+    while (true) {
+
+        int exclude = rand() % N;
+
+        array<int,N-1> items;
+
+        int index = 0;
+        for (int j = 0; j < N; ++j) {
+            if (j != exclude) {
+                items[index++] = j;
+            }
+        }
+
+        csp.dropIngredients(items); 
+
+    }
+}
+
+int main() {
+
+    srand(time(0)); 
 
     array<thread, N> smoker_threads;
 
     for (int i = 0; i < N; ++i) {
-        smoker_threads[i] = thread(&CigaretteSmokingProblem::smoker, &csp, i);
+        smoker_threads[i] = thread(smoker, i);
     }
 
     thread agent_thread(agent);
 
-    // join threads
-
     for (auto& t : smoker_threads) {
         t.join();
     }
+
     agent_thread.join();
 
     return 0;
