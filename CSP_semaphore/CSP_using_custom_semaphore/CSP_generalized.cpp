@@ -58,7 +58,7 @@ void* smoker(void* arg) {
     printf("Smoker %d: Starting...\n", id);
 
     while (1) {
-        while (r[id] != 2)
+        while (r[id] != N-1)
             ; // Wait until the smoker has 2 items
 
         printf("Smoker %d: Smoking...\n", id);
