@@ -8,7 +8,7 @@ using namespace std;
 
 #include "BinarySemaphore.h"
 
-#define N 10
+#define N 3
 
 int t = 0;
 
