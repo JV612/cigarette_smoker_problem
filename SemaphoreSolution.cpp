@@ -73,7 +73,7 @@ void* smoker_with_paper(void* arg) {
             
             printf("Smoker having paper : Smoking...\n");
             sleep(1); // simulation of smoking time
-            printf("Smoker having paper : Finished smoking ! \n");
+            printf("Smoker having paper : Finished smoking ! \n\n");
 
             binary_semaphore_signal(&next_round); // notify agent for next round
         }
@@ -95,7 +95,7 @@ void* smoker_with_match(void* arg) {
 
             printf("Smoker having match : Smoking...\n");
             sleep(1); // simulation of smoking time
-            printf("Smoker having match : Finished smoking ! \n");
+            printf("Smoker having match : Finished smoking ! \n\n");
 
             binary_semaphore_signal(&next_round); // notify agent for next round
 
