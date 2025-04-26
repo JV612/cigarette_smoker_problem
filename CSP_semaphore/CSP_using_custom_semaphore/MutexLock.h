@@ -1,29 +1,27 @@
 #ifndef MUTEX_LOCK_H
 #define MUTEX_LOCK_H
 
-#include <stdatomic.h>
+#include <atomic>
 
 typedef struct {
-    atomic_flag lock;
+    atomic_flag lock = ATOMIC_FLAG_INIT; // Initialize atomic_flag
 } Mutex;
 
 void mutex_init(Mutex *m) {
-    atomic_flag_clear(&m->lock);
+    m->lock.clear(); // Clear the atomic_flag
 }
 
 void mutex_lock(Mutex *m) {
-    while (atomic_flag_test_and_set(&m->lock))
+    while (m->lock.test_and_set(std::memory_order_acquire))
         ; // spin-wait (busy wait)
 }
 
 void mutex_unlock(Mutex *m) {
-    atomic_flag_clear(&m->lock);
+    m->lock.clear(std::memory_order_release);
 }
 
 void mutex_destroy(Mutex *m) {
-    // No specific action needed for destruction in this implementation
-    // as atomic_flag does not require explicit cleanup.
-    (void)m; // Suppress unused parameter warning
+    (void)m; 
 }
 
 #endif // MUTEX_LOCK_H
