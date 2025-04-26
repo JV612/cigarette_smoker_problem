@@ -34,6 +34,18 @@ void binary_semaphore_signal(BinarySemaphore *sem) {
     mutex_unlock(&sem->mutex);
 }
 
+int binary_semaphore_try_wait(BinarySemaphore *sem) {
+    mutex_lock(&sem->mutex);
+    if (sem->value == 1) {
+        sem->value = 0;
+        mutex_unlock(&sem->mutex);
+        return 0;
+    } else {
+        mutex_unlock(&sem->mutex);
+        return -1;
+    }
+}
+
 void binary_semaphore_destroy(BinarySemaphore *sem) {
     mutex_destroy(&sem->mutex);
 }
