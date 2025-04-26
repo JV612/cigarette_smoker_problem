@@ -69,7 +69,7 @@ void smoker(int id) {
 
         this_thread::sleep_for(chrono::seconds(1)); // Simulate smoking time
 
-        cout << "Smoker " << id << " finished smoking." << endl << endl;
+        cout << "Smoker " << id << " finished smoking." << endl;
 
         csp.notify_for_next_round(); 
 
