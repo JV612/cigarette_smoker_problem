@@ -13,8 +13,12 @@ The repository contains source code for all different solutions proposed.
 
 ## Contributors
 Arnav Gupta (23114010)
+
 Krish Singla (23114050)
+
 Megh Bhavesh Shah (23114065)
+
 Vaghasiya Jay Rasikbhai (23114104)
+
 Tanay Kapadia (23323044)
 
