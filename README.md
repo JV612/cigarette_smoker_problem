@@ -1,2 +1,15 @@
-# cigarette_smoker_problem
-Solution of cigarette smoker problem of operating system using semaphores and monitors
+# Cigarette Smokers' Problem
+
+In this project, we try to explore the classical synchronisation problem. Our objectives of the project are as follows.
+
+- Understand the issues with a naive solution
+- Create a solution with a novel semaphore implemented by ourselves
+- Generalise the problem for an arbitary number of smokers
+- Propose a solution for the generalised problem using semaphore arrays and bitmasking
+- Use monitor to solve the problem
+- Provide a comparative analysis of the different solutions
+
+The repository contains source code for all different solutions proposed.
+
+## Contributors
+
