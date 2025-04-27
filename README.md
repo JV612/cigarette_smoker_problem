@@ -11,6 +11,13 @@ In this project, we try to explore the classical synchronisation problem. Our ob
 
 The repository contains source code for all different solutions proposed.
 
+## Instructions to run a particular file 
+Run the following command on the terminal:
+```g++ -std=c++17 -pthread -g -o demo demo.cpp```
+
+And then run the executable using 
+```./demo```
+
 ## Contributors
 Arnav Gupta (23114010)
 
